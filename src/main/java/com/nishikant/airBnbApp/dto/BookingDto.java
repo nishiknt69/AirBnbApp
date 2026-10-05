@@ -6,7 +6,9 @@ import com.nishikant.airBnbApp.entity.Room;
 import com.nishikant.airBnbApp.entity.User;
 import com.nishikant.airBnbApp.entity.enums.BookingStatus;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -15,6 +17,8 @@ import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class BookingDto {
     private Long id;
 

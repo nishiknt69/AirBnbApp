@@ -6,12 +6,15 @@ import com.nishikant.airBnbApp.dto.GuestDto;
 import com.nishikant.airBnbApp.entity.*;
 import com.nishikant.airBnbApp.entity.enums.BookingStatus;
 import com.nishikant.airBnbApp.exception.ResourceNotFoundException;
+import com.nishikant.airBnbApp.exception.UnAuthorisedException;
 import com.nishikant.airBnbApp.repository.*;
 import com.nishikant.airBnbApp.service.serviceinterface.BookingService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.stereotype.Service;
 
 import java.awt.print.Book;
@@ -65,11 +68,6 @@ public class BookingServiceImpl implements BookingService {
 
         inventoryRepository.saveAll(inventoryList);
 
-        // create the booking
-
-        User user = new User();
-        user.setId(1L); // TODO: REMOVE DUMMY USER
-
         // TODO: calculate dynamic amount
 
         Booking booking = Booking.builder()
@@ -78,7 +76,7 @@ public class BookingServiceImpl implements BookingService {
                 .room(room)
                 .checkInDate(bookingRequest.getCheckInDate())
                 .checkOutDate(bookingRequest.getCheckOutDate())
-                .user(user)
+                .user(getCurrentUser())
                 .roomsCount(bookingRequest.getRoomsCount())
                 .amount(BigDecimal.TEN)
                 .build();
@@ -94,6 +92,12 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
                 new ResourceNotFoundException("Booking not found with Id: "+bookingId));
 
+        User user = getCurrentUser();
+
+        if(!user.equals(booking.getUser())){
+            throw new UnAuthorisedException("Booking does not belong to this user with id: "+user.getId());
+        }
+
         if(hasBookingExpired(booking)){
             throw new IllegalStateException("Booking has already expired");
         }
@@ -108,7 +112,7 @@ public class BookingServiceImpl implements BookingService {
                     guest.getName(),
                     guest.getGender(),
                     guest.getAge());
-            guest.setUser(getCurrentUser());
+            guest.setUser(user);
             guest = guestRepository.save(guest);
             booking.getGuests().add(guest);
         }
@@ -124,8 +128,6 @@ public class BookingServiceImpl implements BookingService {
     }
 
     public User getCurrentUser(){
-        User user = new User();
-        user.setId(1L); //TODO : remove dummy user
-        return user;
+        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }
